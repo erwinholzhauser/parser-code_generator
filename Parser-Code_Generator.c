@@ -16,15 +16,11 @@ FILE *token_fin;
 
 //Input: curr_token, token_fin. 
 //Post-conditions: Gets the next token, and stores it in curr_token.
-//                 If there are no more tokens, return -1.
+//                 If successful, return 1; Otherwise, return 0.
 int get_token(){
-  
-  printf("TestB\n");
 
   //Get next token type.
   if( fscanf( token_fin, "%s", curr_token.type ) != EOF ){
-
-    printf("TestB1\n");
 
     //If token is identsym or numbersym, get token value.
     if( !strcmp(curr_token.type, "2") || !strcmp(curr_token.type, "3") )
@@ -46,9 +42,7 @@ int main(){
   //Open file input stream.
   token_fin = fopen("token_file.txt", "r");
 
-  printf("TestA\n");
-  while( get_token() )
-    printf("Kind: %s, Type: %s\n", curr_token.type, curr_token.value);
+
 
   //Resource management.
   fclose(token_fin);
