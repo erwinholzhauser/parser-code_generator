@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define MAX_SYMBOL_TABLE_SIZE 10000
+#define CODE_SIZE 10000
 
 //Data structure representing a token.
 typedef struct{
@@ -13,17 +14,34 @@ typedef struct{
 
 //Data structure representing a symbol.
 typedef struct{
-  int kind;      //const = 1, var = 2, proc = 3.
+  int kind;      //const = 1, var = 2.
   char name[12]; //Name up to 11 characters.
   int val;       //Number (ASCII value).
-  int level;     //L Level.
-  int addr;      //M address.
+  /*int level;   //L level. Not applicable.*/
+  int reg;       //M address.
+  int init;       //Boolean; If initialized, = 1; otherwise, = 0.
 } symbol;
+
+//Keep track of registers occupied registers.
+//After var/const is bound to register, increment.
+int reg_ctr;
+
+//Data structure representing assembly language code
+//for virtual machine created in HW1.
+typedef struct{
+  int op; //opcode.
+  int r;  //register.
+  int l;  //lexicographical level.
+  int m;  //modifier.
+} code;
 
 token curr_token; //Current token to analyze.
 
 int symbol_ctr; //Counter for symbols inserted to symbol table.
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE]; //Symbol table.
+
+int cx; //Code index.
+code code_ds[CODE_SIZE]; //Code data structure.
 
 //File pointer to token / internal representation file.
 FILE *token_fin;
@@ -144,17 +162,45 @@ void error( int n ){
   case 26:
     printf("26, end expected\n");
     break;
+  case 27:
+    printf("27, all available registers in use\n");
+    break;
+  case 28:
+    printf("28, variable not initialized\n");
+    break;
 
   }
-
-  //Debugging Statement:
-  printf("Token: Type: %s, Value: %s .\n", curr_token.type, curr_token.value);
   
   //Resource management.
   fclose(token_fin);
 
   //Terminate program.
   exit(0);
+}
+
+void emit(int op, int r, int l, int m){
+  if( cx > CODE_SIZE )
+    error(25); //Code exceeds max size. TO-DO: Replace error type.
+  else{
+    code_ds[cx].op = op; //opcode
+    code_ds[cx].r = r; //register
+    code_ds[cx].l = l; //lexicographical level
+    code_ds[cx].m = m; //modifier
+    cx++;
+  }
+}
+
+//Post-condition: Insert symbol with specified parameters into symbol table.
+void insert_symbol( int k, char name[], int val, int reg, int i ){
+
+  //Set symbol fields.
+  symbol_table[symbol_ctr].kind = k;
+  strcpy( symbol_table[symbol_ctr].name, name );
+  symbol_table[symbol_ctr].val = val;
+  symbol_table[symbol_ctr].reg = reg;
+  symbol_table[symbol_ctr].init = i;
+  symbol_ctr++; //Increment counter.
+
 }
 
 void term();
@@ -167,8 +213,9 @@ void expression(){
    */
 
   //Follow grammar.
-  if( !strcmp(curr_token.type, "4" /*plussym*/) || !strcmp(curr_token.type, "5" /*minussym*/) )
+  if( !strcmp(curr_token.type, "4" /*plussym*/) || !strcmp(curr_token.type, "5" /*minussym*/) ){
     get_token();
+  }
 
   term();
 
@@ -219,16 +266,46 @@ void condition(){
 
 void factor(){
 
+  int i; //index.
+
+  //Boolean to check if identifier is declared. If so, = 1; else, = 0.
+  int dec = 0;
+
+  //Save symbol table index for found identifier.
+  int ident_index;
+
   /*
    * production rule:
    * factor ::= ident | number | "(" expression ")".
    */
 
   //Follow grammar.
-  if( !strcmp(curr_token.type, "2") )
+
+  //ident
+  if( !strcmp(curr_token.type, "2") ){
+
+    //Check for undeclared.
+    for( i = 0; i < symbol_ctr; i++ )
+      if( !strcmp( curr_token.value, symbol_table[i].name ) ){
+	dec = 1; //Declared!
+	ident_index = i; //Save index.
+      }
+    
+    //Undeclared identifier?
+    if( !dec ) error(11);
+
+    //Check for uninitialized.
+    if( !symbol_table[ident_index].init ) error(28); //Uninitialized!
+
     get_token();
+
+  }
+
+  // | number
   else if( !strcmp(curr_token.type, "3") )
     get_token();
+
+  // | "(" expression ")".
   else if( !strcmp(curr_token.type, "15") ){
     get_token();
     expression();
@@ -240,7 +317,7 @@ void factor(){
     error(23);
 }
 
-void term(){
+void term(){  token addop;
 
   /*
    * production rule:
@@ -258,6 +335,14 @@ void term(){
 
 void statement(){
   
+  int i; //index.
+
+  //Boolean to check if identifier is declared. If so, = 1; else, = 0.
+  int dec = 0;
+
+  //Save symbol table index for found identifier.
+  int ident_index;
+  
   /*
    * production rule:
    * statement ::= [ ident ":=" expression
@@ -272,10 +357,35 @@ void statement(){
   //Follow grammar.
   // ident ":=" expression
   if( !strcmp(curr_token.type, "2" /*identsym*/) ){
+    
+    //Check if identifier has been declared.
+    for( i = 0; i < symbol_ctr; i++ )
+
+      if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
+
+	if( symbol_table[i].kind == 1 /*const*/ ) error(12);
+
+	else if( symbol_table[i].kind == 2 /*var*/ ){
+	  dec = 1; //Variable, and declared!
+	  ident_index = i; //Save identifier index.
+	}
+
+      }
+    
+    //Undeclared identifier?
+    if( !dec ) error(11);
+
     get_token();
+
     if( strcmp(curr_token.type, "20" /*becomessym*/) != 0 ) error(3);
+
     get_token();
+
     expression();
+
+    //Identifier has been initialized. Update symbol table.
+    symbol_table[ident_index].init = 1;
+
   }
   /*
    * EDIT: Removed. No call statements in HW3 grammar.
@@ -314,33 +424,78 @@ void statement(){
 
 void block(){
   
+  //Used for insertion to symbol table.
+  //Whenever a constant or variable is successfully parsed, store appropriate
+  //values into these variables, and insert to symbol table.
+  char name[12];
+  int val;
+  int reg;
+  
+  
   /*
    * production rule:
    * block ::= const-declaration var-declaration statement.
    */
-
+  
   //Follow grammar.
   //const-declaration ::= ["const" ident "=" number {"," ident "=" number} ";"].
   if( !strcmp(curr_token.type, "28" /*constsym*/) ){
     do{
+
       get_token();
+
       if( strcmp(curr_token.type, "2" /*identsym*/) != 0 ) error(4);
+      
+      //Keep track of symbol identifier for symbol table.
+      strcpy(name, curr_token.value);
+
       get_token();
+
       if( strcmp(curr_token.type, "9" /*eqlsym*/) != 0 ) error(3);
       get_token();
+
       if( strcmp(curr_token.type, "3" /*numbersym*/) != 0 ) error(2);
+      
+      //Keep track of symbol value for symbol table.
+      val = atoi(curr_token.value);
+
+      //Store constant to symbol table, if registers permit.
+      if( reg_ctr <= 15 ){
+	insert_symbol( 1 /*constant*/, name, val, reg_ctr, 1 );
+	reg_ctr++;
+      }
+      else error(27); //All registers in use!
+      
       get_token();
+
+
     }while( !strcmp(curr_token.type, "17" /*commasym*/) );
     if( strcmp(curr_token.type, "18" /*semicolonsym*/) != 0 ) error(5);
     get_token();
   }
+
   //var-declaration ::= ["int" ident {"," ident} ";"].
   if( !strcmp(curr_token.type, "29" /*intsym*/) ){
     do{
+
       get_token();
+
       if( strcmp(curr_token.type, "2" /*identsym*/) != 0 ) error(4);
+
+      //Keep track of symbol identifier for symbol table.
+      strcpy(name, curr_token.value);
+
+      //Store constant to symbol table, if registers permit.
+      if( reg_ctr <= 15 ){
+	insert_symbol( 2 /*constant*/, name, 0, reg_ctr, 0 ); //Set undeclared flag.
+	reg_ctr++;
+      }
+      else error(27); //All registers in use!
+      
       get_token();
+
     }while( !strcmp(curr_token.type, "17" /*commasym*/) );
+
     if( strcmp(curr_token.type, "18" /*semicolonsym*/) != 0 ) error(5);
     get_token();
   }
@@ -364,12 +519,23 @@ void program(){
 
 int main(){
 
+  int i; //index.
+
   //Open file input stream.
   token_fin = fopen("token_file.txt", "r");
 
-  //Initialize.
+  //Initialize counters.
   symbol_ctr = 0;
-  //get_token(); //Get first token.
+  cx = 0;
+  reg_ctr = 0;
+
+  //Initialize code data structure.
+  for( i = 0; i < CODE_SIZE; i++ ){
+    code_ds[i].op = 0;
+    code_ds[i].r = 0;
+    code_ds[i].l = 0;
+    code_ds[i].m = 0;
+  }
 
   //Recursively parse tokens.
   program();
@@ -379,5 +545,3 @@ int main(){
 
   return 0;
 }
-
-
