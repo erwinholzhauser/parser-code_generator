@@ -102,7 +102,9 @@ int main(){
   token_fin = fopen("lexeme_list.txt", "r");
 
   //Initialize counters.
-  symbol_ctr = reg_ptr = cx = 0;
+  symbol_ctr = 0;
+  reg_ptr = 0;
+  cx = 0;
   sp = 5;
 
   //Initialize code data structure.
@@ -113,8 +115,20 @@ int main(){
     code_ds[i].m = 0;
   }
 
+  //Need to initialize stack by making room for activation record.
+  emit( 6 /*inc*/, 0, 0, 4 /*activation record*/ );
+
   //Recursively parse tokens.
   program();
+
+  //Pmachine needs halting condition to terminate. Generate halting condition.
+  emit( 2 /*return*/, 0, 0, 0 );
+
+  int x = 0;
+  while( !( code_ds[x].op == 0 && code_ds[x].r == 0 && code_ds[x].l == 0 && code_ds[x].m == 0 ) ){
+    printf("%d %d %d %d\n", code_ds[x].op, code_ds[x].r, code_ds[x].l, code_ds[x].m );
+    x++;
+  }
 
   //Resource management.
   fclose(token_fin);
@@ -173,8 +187,11 @@ void block(){
       //Keep track of symbol value for symbol table entry.
       val = atoi(curr_token.value);
 
-      //Create symbol table entry, and update stack pointer.
+      //Create symbol table entry, store in memory, and update stack pointer.
 	  insert_symbol( 1 /*constant*/, name, val, sp );
+	  emit( 1 /*lit*/, reg_ptr, 0, val );
+      emit( 6 /*inc*/, 0, 0, 1 );
+	  emit( 4 /*sto*/, reg_ptr, 0, sp - 1 );
 	  sp++;
 
       get_token();
@@ -199,9 +216,12 @@ void block(){
       //Keep track of symbol identifier for symbol table.
       strcpy(name, curr_token.value);
 
-      //Create symbol table entry, and update stack pointer.
+      //Create symbol table entry, store in memory, and update stack pointer.
       //Variables are initialized to 0.
       insert_symbol( 2 /*variable*/, name, 0, sp );
+	  emit( 1 /*lit*/, reg_ptr, 0, 0 );
+      emit( 6 /*inc*/, 0, 0, 1 );
+	  emit( 4 /*sto*/, reg_ptr, 0, sp - 1);
       sp++;
 
       get_token();
@@ -270,8 +290,7 @@ void statement(){
      * Store the result of the expression at the memory address assigned to the symbol at
      * the left-hand side of the assignment statement.
      */
-
-     emit( 4 /*sto*/, reg_ptr - 1, 0, symbol_table[ ident_index ].addr /*symbol address*/ );
+     emit( 4 /*sto*/, reg_ptr - 1, 0, symbol_table[ ident_index ].addr - 1 /*symbol address*/ );
      reg_ptr--;
 
   }
@@ -319,11 +338,15 @@ void statement(){
      */
 
      emit( 8 /*jpc*/, reg_ptr - 1, 0, 0 );
-     reg_ptr--; //Done with condition result. Free up register.
 
     statement();
 
     code_ds[ ctemp ].m = cx; //Have correct cx, so update jpc.
+
+    reg_ptr--; //Done with condition result. Free up register.
+
+    //Debugging statement:
+    //printf("cx = %d\n", cx);
 
   }
 
@@ -347,9 +370,10 @@ void statement(){
     statement();
 
     emit( 7 /*jmp*/, 0, 0, cx1 );
-    reg_ptr--;
 
     code_ds[ cx2 ].m = cx;
+
+    reg_ptr--; //Done with condition result. Free up register.
 
   }
 
@@ -555,7 +579,7 @@ void factor(){
     if( !dec ) error(11);
 
     //Place identifier on Register File "stack" for operations.
-    emit( 1 /*lit*/, reg_ptr, 0, symbol_table[i].val );
+    emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ident_index].addr - 1 );
     reg_ptr++; //Increment RP.
 
     get_token();
@@ -604,10 +628,11 @@ int get_token(){
     else curr_token.value[0] = '\0';
 
     //Debugging Statement:
-    printf("Token: Type: %s, Value: %s .\n", curr_token.type, curr_token.value);
+    //printf("Token: Type: %s, Value: %s .\n", curr_token.type, curr_token.value);
 
     //Successful token fetch.
     return 1;
+
   }
 
   //No more tokens.
@@ -731,6 +756,10 @@ void emit(int op, int r, int l, int m){
     code_ds[cx].m = m;      //modifier
     cx++;
   }
+
+  // Debugging statements:
+  //printf("%d %d %d %d\n", op, r, l, m);
+  //printf("cx: %d\n", cx);
 
 }
 
