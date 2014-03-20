@@ -377,6 +377,74 @@ void statement(){
 
   }
 
+  // read ident
+  else if( !strcmp( curr_token.type, "32" /*readsym*/ ) ){
+
+    get_token();
+
+    if( strcmp( curr_token.type, "2" /*identsym*/ ) != 0 ) error(29);
+
+    //Check if identifier has been declared.
+    for( i = 0; i < symbol_ctr; i++ )
+        if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
+
+            dec = 1; //Variable, and declared!
+            ident_index = i; //Save identifier index.
+
+        }
+
+    //Undeclared identifier?
+    if( !dec ) error(11);
+
+    /*
+     * Want to read input from user, and store into identifier.
+     * Need to read from user and store in register, then store from register into
+     * the memory location for the identifier.
+     */
+
+     emit( 10 /*sio*/, reg_ptr, 0, 2 /*read*/ ); //User input to register.
+     emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr ); //Register to memory.
+
+     get_token();
+
+  }
+
+  // write ident
+  else if( !strcmp( curr_token.type, "31" /*writesym*/ ) ){
+
+    get_token();
+
+    if( strcmp( curr_token.type, "2" /*identsym*/ ) != 0 ) error(29);
+
+    //Check if identifier has been declared.
+    for( i = 0; i < symbol_ctr; i++ )
+        if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
+
+            if( symbol_table[i].kind == 1 /*const*/ ) error(12);
+
+            else if( symbol_table[i].kind == 2 /*var*/ ){
+                dec = 1; //Variable, and declared!
+                ident_index = i; //Save identifier index.
+            }
+
+        }
+
+    //Undeclared identifier?
+    if( !dec ) error(11);
+
+    /*
+     * Want to write contents of a variable to screen.
+     * Need to read from mem and store in register, then read from register and
+     * write to the screen.
+     */
+
+     emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr ); //Memory to register.
+     emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
+
+     get_token();
+
+  }
+
 }
 
 void condition(){
@@ -646,6 +714,8 @@ int get_token(){
 
 void error( int n ){
 
+  printf("Token: Type: %s Val: %s\n", curr_token.type, curr_token.value);
+
   printf("***** Error number ");
 
   switch( n ){
@@ -733,6 +803,9 @@ void error( int n ){
     break;
   case 28:
     printf("28, variable not initialized\n");
+    break;
+  case 29:
+    printf("29, identifier expected after read or write\n");
     break;
 
   }

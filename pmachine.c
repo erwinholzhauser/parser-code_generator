@@ -213,7 +213,7 @@ int main( void ){
     FILE *fout2 = fopen( "output3.txt", "w+" );
 
     //File input stream for operation 10 (Read user input into register).
-    FILE *sio_fin = fopen( "input2.txt", "r" );
+    FILE *sio_fin = fopen( "standard_in.txt", "r" );
 
     //Execute instruction cycle while P-Machine is not in end-state.
     while( !( cpu.PC == 0 && cpu.BP == 0 && cpu.SP == 0 ) ){

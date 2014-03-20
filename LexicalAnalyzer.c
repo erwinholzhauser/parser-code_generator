@@ -272,9 +272,9 @@ int main( void ){
     int isComment = 0; //If currently reading in a comment, = 1; otherwise, = 0.
 
     //For the length of tokens.
-    for( i = 0; i < tempTokCtr; i++ ){
+    while( fscanf( fin, "%s ", buffer ) != EOF ){
 
-        fscanf( fin, "%s", buffer ); //Read in token.
+        //fscanf( fin, "%s", buffer ); //Read in token.
         len = (int) strlen( buffer ); //Get token string length.
 
         //Recognize beginning of comment block.
@@ -333,6 +333,7 @@ int main( void ){
             }
         }
 
+
     }
 
     //Resource management.
@@ -356,7 +357,7 @@ int main( void ){
     //Resource management.
     fclose( fin );
     fclose( source );
-    remove( "temp_output.txt" ); //Delete intermediary output.
+    //remove( "temp_output.txt" ); //Delete intermediary output.
 
     /** END OF PROCEDURE **/
 
@@ -504,6 +505,8 @@ int isOtherValid( char *s ){
         return 6;
     else if( !strcmp( s, "/" ) )
         return 7;
+    else if( !strcmp( s, "<=" ) )
+        return 12;
     else if( !strcmp( s, ">=" ) )
         return 14;
     else if( !strcmp( s, "(" ) )
