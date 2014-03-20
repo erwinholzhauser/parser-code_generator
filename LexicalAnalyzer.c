@@ -72,8 +72,6 @@ int main( void ){
     /** BEGIN PROCEDURE **/
     while( fscanf( fin, "%s", buffer ) != EOF ){
 
-        //Procedure for even ordered tokens.
-
         int len = (int) strlen( buffer ); //Length of read-in token.
 
         //For the length of the read-in token:
@@ -92,6 +90,12 @@ int main( void ){
                 //Brute force examine particular token cases: comment tokems, not equal, less-than-or-equal, ... , null, and odd.
                 if( len > 1 ){
                     if( buffer[ i ] == '/' && buffer[ i+1 ] == '*' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "/* " );
                         tempTokCtr++;
 
@@ -101,6 +105,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( buffer[ i ] == '*' && buffer[ i+1 ] == '/' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "*/ " );
                         tempTokCtr++;
 
@@ -110,6 +120,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( buffer[ i ] == '!' && buffer[ i+1 ] == '=' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "!= " );
                         tempTokCtr++;
 
@@ -119,6 +135,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( buffer[ i ] == '<' && buffer[ i+1 ] == '=' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "<= " );
                         tempTokCtr++;
 
@@ -128,6 +150,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( buffer[ i ] == '>' && buffer[ i+1 ] == '=' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, ">= " );
                         tempTokCtr++;
 
@@ -137,6 +165,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( buffer[ i ] == ':' && buffer[ i+1 ] == '=' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, ":= " );
                         tempTokCtr++;
 
@@ -146,6 +180,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( len > 3 && buffer[ i ] == 'n' && buffer[ i+1 ] == 'u' && buffer[ i+2 ] == 'l' && buffer[ i+3 ] =='l' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "null " );
                         tempTokCtr++;
 
@@ -155,6 +195,12 @@ int main( void ){
                         i = -1;
                     }
                     else if( len > 2 && buffer[ i ] == 'o' && buffer[ i+1 ] == 'd' && buffer[ i+2 ] == 'd' ){
+                        strncpy( temp, buffer, i );
+                        temp[ i ] = '\0';
+
+                        fprintf( temp_fout, "%s ", temp );
+                        tempTokCtr++;
+
                         fprintf( temp_fout, "odd " );
                         tempTokCtr++;
 
@@ -166,7 +212,7 @@ int main( void ){
 
                 }
 
-                //Boundary Case: If the first letter is a valid symbol.
+                //Special symbol token at the beginning.
                 if( i == 0 ){
                     //Print symbol as individual token.
                     fprintf( temp_fout, "%c ", buffer[i] );
@@ -195,128 +241,6 @@ int main( void ){
                     buffer[ len - 1 ] = '\0';
                     len = (int) strlen( buffer );
                     i = -1;
-                }
-
-            }
-
-        }
-
-        //Duplicate of above procedure, for odd ordered tokens.
-        if( fscanf( fin, "%s", buffer ) != EOF ){
-
-            int len = (int) strlen( buffer );
-
-            for( i = 0; i < len; i++ ){
-
-                if( i == len-1 && !isSpecialSymbol( buffer[ i ] ) ){
-                    fprintf( temp_fout, "%s ", buffer );
-                    tempTokCtr++;
-                }
-
-                else if( isSpecialSymbol( buffer[ i ] ) ){
-
-                    if( len > 1 ){
-                        if( buffer[ i ] == '/' && buffer[ i+1 ] == '*' ){
-                            fprintf( temp_fout, "/* " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( buffer[ i ] == '*' && buffer[ i+1 ] == '/' ){
-                            fprintf( temp_fout, "*/ " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( buffer[ i ] == '!' && buffer[ i+1 ] == '=' ){
-                            fprintf( temp_fout, "!= " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( buffer[ i ] == '<' && buffer[ i+1 ] == '=' ){
-                            fprintf( temp_fout, "<= " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( buffer[ i ] == '>' && buffer[ i+1 ] == '=' ){
-                            fprintf( temp_fout, ">= " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( buffer[ i ] == ':' && buffer[ i+1 ] == '=' ){
-                            fprintf( temp_fout, ":= " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+2, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( len > 3 && buffer[ i ] == 'n' && buffer[ i+1 ] == 'u' && buffer[ i+2 ] == 'l' && buffer[ i+3 ] =='l' ){
-                            fprintf( temp_fout, "null " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+4, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-                        else if( len > 2 && buffer[ i ] == 'o' && buffer[ i+1 ] == 'd' && buffer[ i+2 ] == 'd' ){
-                            fprintf( temp_fout, "odd " );
-                            tempTokCtr++;
-
-                            strncpy( buffer, &buffer[i]+3, len-1 );
-                            buffer[ len - 1 ] = '\0';
-                            len = (int) strlen( buffer );
-                            i = -1;
-                        }
-
-                    }
-
-                    if( i == 0 ){
-                        fprintf( temp_fout, "%c ", buffer[i] );
-                        tempTokCtr++;
-
-                        strncpy( buffer, &buffer[i]+1, len-1 );
-                        buffer[ len - 1 ] = '\0';
-                        len = (int) strlen( buffer );
-                        i = -1;
-                    }
-
-                    if( i > 0 ){
-                        strncpy( temp, buffer, i );
-                        temp[ i ] = '\0';
-
-                        fprintf( temp_fout, "%s ", temp );
-                        tempTokCtr++;
-
-                        fprintf( temp_fout, "%c ", buffer[i] );
-                        tempTokCtr++;
-
-                        strncpy( buffer, &buffer[i]+1, len-1 );
-                        buffer[ len - 1 ] = '\0';
-                        len = (int) strlen( buffer );
-                        i = -1;
-                    }
-
                 }
 
             }

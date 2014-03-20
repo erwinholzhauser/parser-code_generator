@@ -99,7 +99,7 @@ int main(){
   int i; //index.
 
   //Open file input stream.
-  token_fin = fopen("token_file.txt", "r");
+  token_fin = fopen("lexeme_list.txt", "r");
 
   //Initialize counters.
   symbol_ctr = reg_ptr = cx = 0;
