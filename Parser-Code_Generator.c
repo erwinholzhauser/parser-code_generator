@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define MAX_SYMBOL_TABLE_SIZE 10000
-#define CODE_SIZE 10000
+#define CODE_SIZE 500
 
 //Data structure representing a token.
 typedef struct{
