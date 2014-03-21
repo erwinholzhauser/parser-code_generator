@@ -1,3 +1,21 @@
+/**********************************************************************************************
+ * Homework #3A (Parser-Code Generator)
+ *
+ * Contributor(s): Erwin Holzhauser, Kent Pool
+ *
+ * Due Date: March 24, 2014, @ 11:59 PM
+ *
+ * COP3402-0001, Spring 2014       Instructor: Euripides Montagne
+ *
+ * Description: Implementation of a Recursive Descent Parser and Intermediate Code Generator
+ *              for the "tiny" PL/0 subset.
+ *
+ * Input: lexeme_list.txt : Lexeme list for the source program, generated from scanner.
+ *
+ * Output: assembly.txt : generated assembly code for P-machine.
+ *
+ **********************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -5,6 +23,8 @@
 
 #define MAX_SYMBOL_TABLE_SIZE 10000
 #define CODE_SIZE 500
+
+    /* Structs and Global Varables */
 
 //Data structure representing a token.
 typedef struct{
@@ -63,6 +83,8 @@ code code_ds[CODE_SIZE];    //Code data structure.
 //File pointer to token (internal representation) file.
 FILE *token_fin;
 
+    /* Auxiliary Function Prototypes */
+
 //Input: curr_token, token_fin.
 //Post-conditions: Gets the next token, and stores it in curr_token.
 //                 If successful, return 1; Otherwise, return 0.
@@ -72,10 +94,14 @@ int get_token();
 //Post-condition: Stops parsing, and shows error message.
 void error( int n );
 
+//Input: Assembly code fields: op code, register, lexicographical level, and modifier.
+//Post-condition: Generate assembly instruction to code data structure, and update program counter.
 void emit(int op, int r, int l, int m);
 
 //Post-condition: Insert symbol with specified parameters into symbol table.
 void insert_symbol( int k, char name[], int val, int addr );
+
+    /* Prototypes for Recursive Descent Parsing Functions */
 
 void program();
 
@@ -93,6 +119,8 @@ void expression();
 void term();
 
 void factor();
+
+    /* Main Function */
 
 int main(){
 
@@ -121,20 +149,29 @@ int main(){
   //Recursively parse tokens.
   program();
 
+  //Report successful parsing.
+  printf( "No errors, program is syntactically correct\n" );
+
   //Pmachine needs halting condition to terminate. Generate halting condition.
   emit( 2 /*return*/, 0, 0, 0 );
 
+  //Open file output stream to store generated assembly code.
+  FILE *fout = fopen( "assembly.txt", "w" );
+
   int x = 0;
   while( !( code_ds[x].op == 0 && code_ds[x].r == 0 && code_ds[x].l == 0 && code_ds[x].m == 0 ) ){
-    printf("%d %d %d %d\n", code_ds[x].op, code_ds[x].r, code_ds[x].l, code_ds[x].m );
+    fprintf(fout, "%d %d %d %d\n", code_ds[x].op, code_ds[x].r, code_ds[x].l, code_ds[x].m );
     x++;
   }
 
   //Resource management.
   fclose(token_fin);
+  fclose(fout);
 
   return 0;
 }
+
+    /* Function Definitions */
 
 void program(){
 
@@ -147,6 +184,7 @@ void program(){
   get_token();
   block();
   if( strcmp(curr_token.type, "19" /*periodsym*/) != 0 ) error(9);
+
 }
 
 void block(){
@@ -403,7 +441,7 @@ void statement(){
      */
 
      emit( 10 /*sio*/, reg_ptr, 0, 2 /*read*/ ); //User input to register.
-     emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr ); //Register to memory.
+     emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Register to memory.
 
      get_token();
 
@@ -438,7 +476,7 @@ void statement(){
      * write to the screen.
      */
 
-     emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr ); //Memory to register.
+     emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Memory to register.
      emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
 
      get_token();
@@ -807,6 +845,9 @@ void error( int n ){
   case 29:
     printf("29, identifier expected after read or write\n");
     break;
+  case 30:
+    printf("30, generated code exceeds the maximum code size\n");
+    break;
 
   }
 
@@ -820,7 +861,7 @@ void error( int n ){
 void emit(int op, int r, int l, int m){
 
   if( cx > CODE_SIZE )
-    error(25); //Code exceeds max size. TO-DO: Replace error type.
+    error(30); //Code exceeds max size.
 
   else{
     code_ds[cx].op = op;    //opcode

@@ -61,8 +61,13 @@ int main( void ){
     char buffer[ 10000 ]; //For reading in tokens.
     char temp[ 10000 ]; //Back-up buffer.
 
+    //Prompt user for source program name.
+    char sp[50]; //Name of input file.
+    printf( "What is the file name for your source program?\n" );
+    scanf( "%s", sp );
+
     //Open file input stream to main input (the program).
-    FILE *fin = fopen( "input.txt", "r" );
+    FILE *fin = fopen( sp, "r" );
 
     //Open file output stream to intermediary output file.
     //In this file, unprocessed tokens will be stored for further processing.
@@ -357,7 +362,7 @@ int main( void ){
     //Resource management.
     fclose( fin );
     fclose( source );
-    //remove( "temp_output.txt" ); //Delete intermediary output.
+    remove( "temp_output.txt" ); //Delete intermediary output.
 
     /** END OF PROCEDURE **/
 

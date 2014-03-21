@@ -14,7 +14,7 @@
  *
  * Input: File containing PL/0 program with one instruction per line, and each line
  *        containing 4 integers representing the OP, R, L, and M fields of an instruction.
- *        Also, a separate file containing sequential user input for Operation 9 executions.
+ *        Also, a separate file containing sequential user input for Operation 10 executions.
  *
  * Output: (1) Output1.txt : Print out of the program in interpreted assembly language, with
  *                           line numbers.
@@ -213,7 +213,7 @@ int main( void ){
     FILE *fout2 = fopen( "output3.txt", "w+" );
 
     //File input stream for operation 10 (Read user input into register).
-    FILE *sio_fin = fopen( "standard_in.txt", "r" );
+    FILE *sio_fin = fopen( "in.txt", "r" );
 
     //Execute instruction cycle while P-Machine is not in end-state.
     while( !( cpu.PC == 0 && cpu.BP == 0 && cpu.SP == 0 ) ){
@@ -426,7 +426,7 @@ void readInCode( int code[][ 4 ] ){
     int i = 0; //Counter.
 
     //Open file input stream.
-    FILE *fin = fopen( "input2.txt", "r" );
+    FILE *fin = fopen( "assembly.txt", "r" );
 
     //Read instructions until EOF.
     while( !feof( fin ) ){
