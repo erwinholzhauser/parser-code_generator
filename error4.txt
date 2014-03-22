@@ -1,0 +1,5 @@
+int;
+begin
+y :=;
+x := y + 56;
+end.
