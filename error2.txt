@@ -1,0 +1,4 @@
+const x = c;
+begin
+	x := 4;
+end.
