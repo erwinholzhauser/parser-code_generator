@@ -345,7 +345,7 @@ int main( void ){
             //Check if stack index is an AR base.
             for( j = 0; j < MAX_LEXI_LEVELS; j++ )
                 if( i > 1 && i == bases[ j ] )
-                    fprintf( fout1, "|", stack[i] );
+                    fprintf( fout1, "|" );
 
             //Print stack content.
             fprintf( fout1, "%4d ", stack[i] );
