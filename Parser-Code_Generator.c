@@ -226,11 +226,7 @@ void block(){
       val = atoi(curr_token.value);
 
       //Create symbol table entry, store in memory, and update stack pointer.
-	  insert_symbol( 1 /*constant*/, name, val, sp );
-	  emit( 1 /*lit*/, reg_ptr, 0, val );
-      emit( 6 /*inc*/, 0, 0, 1 );
-	  emit( 4 /*sto*/, reg_ptr, 0, sp - 1 );
-	  sp++;
+	  insert_symbol( 1 /*constant*/, name, val, 0 );
 
       get_token();
 
@@ -349,6 +345,7 @@ void statement(){
       get_token();
       statement();
     }
+
     if( strcmp(curr_token.type, "22" /*endsym*/) != 0 ) error(26);
     get_token();
   }
@@ -441,7 +438,14 @@ void statement(){
      */
 
      emit( 10 /*sio*/, reg_ptr, 0, 2 /*read*/ ); //User input to register.
-     emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Register to memory.
+
+     //Reading into variable.
+     if( symbol_table[ ident_index ].kind == 2 /*var*/ )
+        emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Register to memory.
+
+     //Attempting to read into constant.
+     else if( symbol_table[ ident_index ].kind == 1 /*const*/ )
+        error( 12 ); //Assignment to constant is not allowed.
 
      get_token();
 
@@ -458,10 +462,8 @@ void statement(){
     for( i = 0; i < symbol_ctr; i++ )
         if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
 
-            if( symbol_table[i].kind == 1 /*const*/ ) error(12);
-
-            else if( symbol_table[i].kind == 2 /*var*/ ){
-                dec = 1; //Variable, and declared!
+            if( symbol_table[i].kind == 1 || symbol_table[i].kind == 2 /*const or var*/ ){
+                dec = 1; //Declared!
                 ident_index = i; //Save identifier index.
             }
 
@@ -471,13 +473,22 @@ void statement(){
     if( !dec ) error(11);
 
     /*
-     * Want to write contents of a variable to screen.
-     * Need to read from mem and store in register, then read from register and
+     * Want to write contents of a variable or constant to screen.
+     * Need to read from mem or symbol table and store in register, then read from register and
      * write to the screen.
      */
 
-     emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Memory to register.
-     emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
+     //Get variable from memory.
+     if( symbol_table[ ident_index ].kind == 2 /*var*/ ){
+        emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Memory to register.
+        emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
+     }
+
+     //Get constant from symbol table.
+     else if( symbol_table[ ident_index ].kind == 1 /*const*/ ){
+        emit( 1 /*lit*/, reg_ptr, 0, symbol_table[ ident_index ].val ); //Symbol table to register.
+        emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
+     }
 
      get_token();
 
@@ -685,7 +696,15 @@ void factor(){
     if( !dec ) error(11);
 
     //Place identifier on Register File "stack" for operations.
-    emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ident_index].addr - 1 );
+
+    //If variable, load from memory.
+    if( symbol_table[ident_index].kind == 2 /*var*/ )
+        emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ident_index].addr - 1 );
+
+    //If constant, load literal value from symbol table.
+    else if( symbol_table[ident_index].kind == 1 /*const*/ )
+        emit( 1 /*lit*/, reg_ptr, 0, symbol_table[ident_index].val );
+
     reg_ptr++; //Increment RP.
 
     get_token();
@@ -752,7 +771,8 @@ int get_token(){
 
 void error( int n ){
 
-  printf("Token: Type: %s Val: %s\n", curr_token.type, curr_token.value);
+  //Debugging statement:
+  //printf("Token: Type: %s Val: %s\n", curr_token.type, curr_token.value);
 
   printf("***** Error number ");
 

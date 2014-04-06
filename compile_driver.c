@@ -133,6 +133,100 @@ int main( int argc, char **argv ){
         remove( "output2.txt" );
     }
 
+
+    //Print output to console.
+
+    FILE *fin;
+    char buffer[150];
+
+    //Print "in"
+    printf("\nIn:\n");
+
+    fin = fopen( "in.txt", "r" );
+
+    while( fgets( buffer, 150, fin ) != NULL )
+        printf( "%s", buffer );
+    printf("\n");
+
+    //Print "out"
+    printf("Out:\n");
+
+    fin = fopen( "output3.txt", "r" );
+
+    while( fgets( buffer, 150, fin ) != NULL )
+        printf( "%s", buffer );
+    printf("\n");
+
+    fin = fopen( "out.txt", "r" );
+
+    if( d.l == 1 ){ //Lexical output.
+
+        //Source program.
+        printf("Source Program:\n");
+
+        fin = fopen( "source_program.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+
+        //Lexeme table.
+        printf("\n\n");
+
+        fin = fopen( "lexeme_table.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+
+        //Lexeme list.
+        printf("\nLexeme List:\n");
+
+        fin = fopen( "lexeme_list.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+        printf("\n\n");
+
+    }
+
+    if( d.a == 1 ){ //Assembly output.
+
+        printf("Generated Assembly Code:\n");
+
+        fin = fopen( "assembly.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+        printf("\n");
+
+    }
+
+
+
+    if( d.v ==  1 ){ //VM output.
+
+        //Assembly source program.
+        printf("Assembly Source Program:\n");
+
+        fin = fopen( "output1.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+        printf("\n");
+
+        //Program execution in VM.
+        printf("Program Execution in VM:\n");
+
+        fin = fopen( "output2.txt", "r" );
+
+        while( fgets( buffer, 150, fin ) != NULL )
+            printf( "%s", buffer );
+        printf("\n");
+
+    }
+
+    //Resource management.
+    fclose( fin );
+
     //Exit successfully!
     exit( EXIT_SUCCESS );
 

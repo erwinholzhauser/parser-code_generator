@@ -317,6 +317,7 @@ int main( void ){
 
             case 20 : //LSS R,L,M.
                 lss( cpu.IR.r, cpu.IR.l, cpu.IR.m, &cpu );
+                break;
 
             case 21 : //LEQ R,L,M.
                 leq( cpu.IR.r, cpu.IR.l, cpu.IR.m, &cpu );
@@ -503,8 +504,9 @@ void jmp( int m, CPU *cpu ){
 
 void jpc( int r, int m, CPU *cpu ){
 
-    if( cpu->RF[ r ] == 0 )
+    if( cpu->RF[ r ] == 0 ){
         cpu->PC = m;
+    }
 
 }
 

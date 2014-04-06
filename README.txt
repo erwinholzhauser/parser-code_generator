@@ -16,12 +16,16 @@ II. Input:
 	(4) Does not have to be grammatically valid PL/0 code.
 	(6) The null and odd symbols are "null" and "odd", respectively.
 	(7) You will specify the name for this file. See "Compile & Run".
+
+	Also printed to the console, prefaced by "In: <newline>".
 	
 	"in.txt", which will contain all the user-input integers for read operations, separated by white space. For example, if a user wants to sequentially input 1, 2, and 3 for three read operations, the file would simply contain whitespace-separated 1, 2, and 3.
 
 III. Output:
 
 	output3.txt, which will contain the output of write operations.
+	
+	Also printed to the console, prefaced by "Out: <newline>".
 
 Based on directives:
 
@@ -30,12 +34,19 @@ Directive "-l" :
 	lexeme_table.txt, a lexeme table for the source program.
 	lexeme_list.txt, a lexeme list for the source program.
 
+	Also printed to the console, prefaced by "Source Program: <newline>", "Lexeme Table: <newline>", and "Lexeme List: <newline>", respectively..
+
 Directive "-a" "
 	assembly.txt, the generated assembly code for the P-machine.
+
+	Also printed to the console, prefaced by "Generated Assembly Code: <newline>".
 
 Directive "-v" :
 	output1.txt, which will contain a print out of the source program in interpreted assembly language, with line numbers.
 	output2.txt, which will contain the print-out of the program execution in the virtual machine, showing the stack, PC, BP, and SP.
+
+	Also printed to the console, prefaced by "Assembly Source Program: <newline>" and 
+Program Execution in VM: <newline>", respectively.
 
 IV. Compile & Run:
 

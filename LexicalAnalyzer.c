@@ -351,7 +351,7 @@ int main( void ){
     //Procedure to copy and source program.
     /** BEGIN PROCEDURE **/
 
-    fin = fopen( "input.txt", "r" ); //File containing source program.
+    fin = fopen( sp, "r" ); //File containing source program.
     FILE *source = fopen( "source_program.txt", "w" ); //File to copy source program to.
     char copy; //Used to copy file, character by character.
 
