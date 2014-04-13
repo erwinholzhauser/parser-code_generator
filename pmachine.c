@@ -451,7 +451,7 @@ void rtn( CPU *cpu, int stack[], int bases[], int *baseCtr ){
 
     //Keep track of AR bases.
     bases[ *baseCtr ] = 0;
-    *baseCtr--;
+    *baseCtr -= 1;
 
     //Restore caller environment.
     cpu->SP = cpu->BP - 1;          //Stack pointer.
@@ -486,7 +486,7 @@ void cal( int l, int m, int stack[], CPU *cpu, int bases[], int *baseCtr ){
 
     //Keep track of AR bases.
     bases[ *baseCtr ] = cpu->BP;
-    *baseCtr++;
+    *baseCtr += 1;
 
 }
 

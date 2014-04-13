@@ -40,7 +40,7 @@ typedef struct{
   int kind;      //const = 1, var = 2.
   char name[12]; //Name up to 11 characters.
   int val;       //Number (ASCII value).
-  int level;     //L level. Not applicable for this homework.
+  int level;     //L level.
   int addr;      //M address.
 } symbol;
 
@@ -60,6 +60,12 @@ int reg_ptr;
  * will initialize it past the space for these values.
  */
 int sp;
+
+//Max lexicographical level reached.
+int level;
+
+//Current lexicographical level.
+int curr_level;
 
 /*
  * Data structure representing assembly language code
@@ -101,7 +107,7 @@ void emit(int op, int r, int l, int m);
 //Post-condition: Insert symbol with specified parameters into symbol table.
 void insert_symbol( int k, char name[], int val, int addr );
 
-    /* Prototypes for Recursive Descent Parsing Functions */
+    /* Prototypes for Recursive Descent Parsing / Code Generating Functions */
 
 void program();
 
@@ -133,7 +139,8 @@ int main(){
   symbol_ctr = 0;
   reg_ptr = 0;
   cx = 0;
-  sp = 5;
+  sp = 1;
+  level = curr_level = 1;
 
   //Initialize code data structure.
   for( i = 0; i < CODE_SIZE; i++ ){
@@ -143,21 +150,16 @@ int main(){
     code_ds[i].m = 0;
   }
 
-  //Need to initialize stack by making room for activation record.
-  emit( 6 /*inc*/, 0, 0, 4 /*activation record*/ );
-
   //Recursively parse tokens.
   program();
 
   //Report successful parsing.
   printf( "No errors, program is syntactically correct\n" );
 
-  //Pmachine needs halting condition to terminate. Generate halting condition.
-  emit( 2 /*return*/, 0, 0, 0 );
-
   //Open file output stream to store generated assembly code.
   FILE *fout = fopen( "assembly.txt", "w" );
 
+  //Print assembly code generated to file.
   int x = 0;
   while( !( code_ds[x].op == 0 && code_ds[x].r == 0 && code_ds[x].l == 0 && code_ds[x].m == 0 ) ){
     fprintf(fout, "%d %d %d %d\n", code_ds[x].op, code_ds[x].r, code_ds[x].l, code_ds[x].m );
@@ -182,7 +184,9 @@ void program(){
 
   //Follow grammar.
   get_token();
+
   block();
+
   if( strcmp(curr_token.type, "19" /*periodsym*/) != 0 ) error(9);
 
 }
@@ -195,6 +199,21 @@ void block(){
    */
   char name[12];    //Symbol identifier.
   int val;          //Symbol value.
+
+  int space = 4; //Reserve space for procedure.
+  int proc_x; //Procedure index in symbol table.
+
+  /*
+   * For a procedure, space needs to be reserved for the return value, static link,
+   * dynamic link, and return address. Starting at the fifth position from a lexicographical
+   * level's memory space, variables are stored.
+   */
+  sp = 5; //Stack pointer.
+
+  //Jump to procedure code. Need to save address of jump instruction generated.
+  int jmpaddr = cx;
+
+  emit( 7 /*jmp*/, 0, 0, 0 );
 
   /*
    * production rule:
@@ -253,9 +272,8 @@ void block(){
       //Create symbol table entry, store in memory, and update stack pointer.
       //Variables are initialized to 0.
       insert_symbol( 2 /*variable*/, name, 0, sp );
-	  emit( 1 /*lit*/, reg_ptr, 0, 0 );
-      emit( 6 /*inc*/, 0, 0, 1 );
-	  emit( 4 /*sto*/, reg_ptr, 0, sp - 1);
+      symbol_table[ symbol_ctr - 1 ].level = level;
+	  space++;
       sp++;
 
       get_token();
@@ -266,8 +284,49 @@ void block(){
     get_token();
   }
 
+  //procedure-declaration ::= { "procedure" ident ";" block ";" }
+  while( !strcmp( curr_token.type, "30" /*procsym*/ ) ){
+
+    get_token();
+
+    //procedure must be followed by identifier
+    if( strcmp( curr_token.type, "2" /*identsym*/ ) != 0 ) error( 4 );
+
+    //Keep track of symbol identifier for symbol table entry.
+    strcpy(name, curr_token.value);
+
+    //Create symbol table entry, store in memory, and update stack pointer.
+    insert_symbol( 3 /*procedure*/, name, 0, 0 );
+    proc_x = symbol_ctr - 1; //Procedure index.
+    symbol_table[ proc_x ].level = level;
+    symbol_table[ proc_x ].addr = jmpaddr + 1;
+
+    get_token();
+
+    //semicolon expected
+    if( strcmp( curr_token.type, "18" /*semicolonsym*/ ) != 0 ) error( 17 );
+
+    get_token();
+
+    level++;
+
+    block();
+
+    //semicolon expected
+    if( strcmp( curr_token.type, "18" /*semicolonsym*/ ) != 0 ) error( 17 );
+
+    get_token();
+
+  }
+
+  code_ds[ jmpaddr ].m = cx;
+  emit( 6 /*inc*/, 0, 0, space );
+
   //statement.
   statement();
+
+  emit( 2 /*rtn*/, 0, 0, 0 );
+  curr_level--;
 
 }
 
@@ -297,7 +356,7 @@ void statement(){
   if( !strcmp(curr_token.type, "2" /*identsym*/) ){
 
     //Check if identifier has been declared.
-    for( i = 0; i < symbol_ctr; i++ )
+    for( i = symbol_ctr - 1; i >= 0; i-- )
         if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
 
             if( symbol_table[i].kind == 1 /*const*/ ) error(12);
@@ -324,33 +383,63 @@ void statement(){
      * Store the result of the expression at the memory address assigned to the symbol at
      * the left-hand side of the assignment statement.
      */
-     emit( 4 /*sto*/, reg_ptr - 1, 0, symbol_table[ ident_index ].addr - 1 /*symbol address*/ );
+     emit( 4 /*sto*/, reg_ptr - 1, curr_level - symbol_table[ ident_index ].level, symbol_table[ ident_index ].addr - 1 /*symbol address*/ );
+
      reg_ptr--;
 
   }
-  /*
-   * EDIT: Removed. No call statements in HW3 grammar.
-   *
-   * else if( !strcmp(curr_token.type, "27" /*callsym) ){
-   *   get_token();
-   *   if( strcmp(curr_token.type, "2" /*identsym*) ) error(14);
-   *   get_token();
-   * }
-   */
+
+    //"call" ident
+    else if( !strcmp(curr_token.type, "27" /*callsym*/) ){
+
+        int declared = 0;
+
+        get_token();
+
+        //identifier expected.
+        if( strcmp(curr_token.type, "2" /*identsym*/) ) error(14);
+
+        //Check if identifier has been declared.
+        for( i = symbol_ctr - 1; i >= 0; i-- )
+            if( !strcmp( curr_token.value, symbol_table[i].name ) ){ //Found!
+                ident_index = i; //Save identifier index.
+                declared = 1;
+            }
+
+        if( !declared ) { error( 11 ); }
+
+        if( symbol_table[ident_index].kind == 3 /*proc*/ ){
+            emit( 5 /*cal*/, 0, level, symbol_table[ ident_index ].addr );
+            curr_level ++;
+        }
+        else
+            error( 14 ); //Call must be followed by a procedure identifier.
+
+        get_token();
+
+    }
 
   else if( !strcmp(curr_token.type, "21" /*beginsym*/) ){
+
     get_token();
+
     statement();
+
     while( !strcmp(curr_token.type, "18" /*semicolonsym*/) ){
+
       get_token();
+
       statement();
+
     }
 
     if( strcmp(curr_token.type, "22" /*endsym*/) != 0 ) error(26);
+
     get_token();
+
   }
 
-  // if <condition> then <statement>
+  // if <condition> then <statement> [ "else" statement ]
   else if( !strcmp(curr_token.type, "23" /*ifsym*/) ){
 
     get_token();
@@ -376,9 +465,32 @@ void statement(){
 
     statement();
 
-    code_ds[ ctemp ].m = cx; //Have correct cx, so update jpc.
+    get_token();
 
-    reg_ptr--; //Done with condition result. Free up register.
+    // [ "else" statement ]
+    if( !strcmp( curr_token.type, "33" /*elsesym*/ ) ){
+
+        int ctemp2 = cx; //Save current code index.
+
+        emit( 7 /*jmp*/, 0, 0, 0 );
+
+        code_ds[ ctemp ].m = cx; //Have correct cx, so update jpc.
+
+        get_token();
+
+        statement();
+
+        code_ds[ ctemp2 ].m = cx; //Have correct cx, so update jpc.
+
+        reg_ptr--; //Done with condition result. Free up register.
+
+    }
+
+    else{
+        code_ds[ ctemp ].m = cx; //Have correct cx, so update jpc.
+
+        reg_ptr--; //Done with condition result. Free up register.
+    }
 
     //Debugging statement:
     //printf("cx = %d\n", cx);
@@ -420,7 +532,7 @@ void statement(){
     if( strcmp( curr_token.type, "2" /*identsym*/ ) != 0 ) error(29);
 
     //Check if identifier has been declared.
-    for( i = 0; i < symbol_ctr; i++ )
+    for( i = symbol_ctr - 1; i >= 0; i-- )
         if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
 
             dec = 1; //Variable, and declared!
@@ -441,7 +553,7 @@ void statement(){
 
      //Reading into variable.
      if( symbol_table[ ident_index ].kind == 2 /*var*/ )
-        emit( 4 /*sto*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Register to memory.
+        emit( 4 /*sto*/, reg_ptr, curr_level - symbol_table[ ident_index ].level, symbol_table[ ident_index ].addr - 1 ); //Register to memory.
 
      //Attempting to read into constant.
      else if( symbol_table[ ident_index ].kind == 1 /*const*/ )
@@ -459,7 +571,7 @@ void statement(){
     if( strcmp( curr_token.type, "2" /*identsym*/ ) != 0 ) error(29);
 
     //Check if identifier has been declared.
-    for( i = 0; i < symbol_ctr; i++ )
+    for( i = symbol_ctr - 1; i >= 0; i-- )
         if( !strcmp( curr_token.value, symbol_table[i].name ) ){ /*found*/
 
             if( symbol_table[i].kind == 1 || symbol_table[i].kind == 2 /*const or var*/ ){
@@ -480,7 +592,7 @@ void statement(){
 
      //Get variable from memory.
      if( symbol_table[ ident_index ].kind == 2 /*var*/ ){
-        emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ ident_index ].addr - 1 ); //Memory to register.
+        emit( 3 /*lod*/, reg_ptr, curr_level - symbol_table[ ident_index ].level, symbol_table[ ident_index ].addr - 1 ); //Memory to register.
         emit( 9 /*sio*/, reg_ptr, 0, 1 /*write*/ ); //Register to screen.
      }
 
@@ -686,7 +798,7 @@ void factor(){
   if( !strcmp(curr_token.type, "2" /*identsym*/) ){
 
     //Check for undeclared.
-    for( i = 0; i < symbol_ctr; i++ )
+    for(  i = symbol_ctr - 1; i >= 0; i-- )
       if( !strcmp( curr_token.value, symbol_table[i].name ) ){
         dec = 1; //Declared!
         ident_index = i; //Save index.
@@ -699,7 +811,7 @@ void factor(){
 
     //If variable, load from memory.
     if( symbol_table[ident_index].kind == 2 /*var*/ )
-        emit( 3 /*lod*/, reg_ptr, 0, symbol_table[ident_index].addr - 1 );
+        emit( 3 /*lod*/, reg_ptr, curr_level - symbol_table[ ident_index ].level, symbol_table[ident_index].addr - 1 );
 
     //If constant, load literal value from symbol table.
     else if( symbol_table[ident_index].kind == 1 /*const*/ )
