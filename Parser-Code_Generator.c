@@ -1,7 +1,7 @@
 /**********************************************************************************************
  * Homework #3A (Parser-Code Generator)
  *
- * Contributor(s): Erwin Holzhauser, Kent Pool
+ * Contributor(s): Erwin Holzhauser, Kent Pool(withdrew)
  *
  * Due Date: March 24, 2014, @ 11:59 PM
  *
